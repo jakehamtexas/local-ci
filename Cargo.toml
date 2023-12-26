@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "work_skipping",
+  "cli"
+]
+resolver = "2"
