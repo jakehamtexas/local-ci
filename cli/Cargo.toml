@@ -3,6 +3,18 @@ name = "cli"
 version = "0.1.0"
 edition = "2021"
 
+[dependencies.xxhash-rust]
+version ="0.8.8" 
+features = ["xxh3"]
+
+[dependencies.serde]
+version = "1.0.193"
+features = ["std", "derive"]
+
+[dependencies.serde_json]
+version = "1.0.108"
+features = ["std"]
+
 [dependencies.clap]
 version = "4.4.10"
 features = ["derive", "cargo"]
