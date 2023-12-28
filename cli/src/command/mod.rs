@@ -1,28 +1,11 @@
 use crate::cache::Cache;
+use crate::canonicalized_path::CanonicalizedPath;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::rc::Rc;
-
-#[derive(Debug)]
-pub enum Error {
-    Io(std::io::Error),
-    Cache(crate::cache::Error),
-}
-
-impl From<std::io::Error> for Error {
-    fn from(value: std::io::Error) -> Self {
-        Error::Io(value)
-    }
-}
-
-impl From<crate::cache::Error> for Error {
-    fn from(value: crate::cache::Error) -> Self {
-        Error::Cache(value)
-    }
-}
-
-pub type Result<'a, T, E = Error> = std::result::Result<T, E>;
+pub mod error;
+pub use self::error::{Error, Result};
 
 #[derive(Debug)]
 pub struct Command<'a> {
@@ -31,31 +14,18 @@ pub struct Command<'a> {
 }
 
 impl<'a> TryFrom<&'a str> for Command<'a> {
-    type Error = ();
+    type Error = Error;
     fn try_from(value: &'a str) -> Result<Command<'a>, Self::Error> {
         let parts = value.split_whitespace();
         let parts = parts.collect::<Rc<_>>();
         let parts = parts.split_first();
 
-        let (name, command_args) = parts.ok_or(())?;
+        let (name, command_args) = parts.ok_or(Error::CreationFailed)?;
 
         Ok(Command {
             name,
             args: command_args.iter().map(|arg| arg.to_owned()).collect(),
         })
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CanonicalizedPath {
-    pub value: PathBuf,
-}
-
-impl CanonicalizedPath {
-    pub fn new(path: &Path) -> Option<Self> {
-        path.canonicalize()
-            .map(|value| CanonicalizedPath { value })
-            .ok()
     }
 }
 

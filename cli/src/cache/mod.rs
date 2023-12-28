@@ -1,29 +1,11 @@
+use crate::canonicalized_path::CanonicalizedPath;
 use std::fs::{self, DirBuilder};
 use std::path::{Path, PathBuf};
 use xxhash_rust::xxh3::xxh3_64;
+pub mod error;
+pub use self::error::{Error, Result};
 
-use crate::command::{CanonicalizedPath, RunResult};
-
-#[derive(Debug)]
-pub enum Error {
-    Other(Option<String>),
-    Io(std::io::Error),
-    Serialization(serde_json::Error),
-}
-
-impl From<std::io::Error> for Error {
-    fn from(value: std::io::Error) -> Self {
-        Error::Io(value)
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(value: serde_json::Error) -> Self {
-        Error::Serialization(value)
-    }
-}
-
-pub type Result<'a, T, E = Error> = std::result::Result<T, E>;
+use crate::command::RunResult;
 
 pub trait Cache {
     fn write(&self, run_result: &RunResult) -> Result<()>;
@@ -68,16 +50,16 @@ impl FsCache {
 }
 
 fn get_file_id(canonicalized_path: Option<&CanonicalizedPath>) -> Result<u64> {
-    Ok(xxh3_64(
-        canonicalized_path
-            .ok_or(Error::Other(Some(
-                "Canonicalized path does not exist".to_string(),
-            )))?
-            .value
-            .to_str()
-            .expect("Canonical paths are supposed to be coercible to str")
-            .as_bytes(),
-    ))
+    let bytes = canonicalized_path
+        .ok_or(Error::other("Canonicalized path does not exist"))?
+        .value
+        .to_str()
+        .ok_or(Error::other(
+            "Canonical paths are supposed to be coercible to str",
+        ))?
+        .as_bytes();
+
+    Ok(xxh3_64(bytes))
 }
 
 impl Cache for FsCache {
@@ -104,4 +86,3 @@ impl Cache for FsCache {
         }
     }
 }
-

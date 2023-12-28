@@ -1,5 +1,6 @@
 mod args;
 mod cache;
+mod canonicalized_path;
 mod command;
 mod error;
 mod files;
@@ -11,13 +12,12 @@ use command::Command;
 use error::Result;
 
 fn main() -> Result<()> {
-    run()
+    let args = init();
+    run(args)
 }
 
-fn run() -> Result<()> {
-    let args = init();
-
-    let command = Command::try_from(args.command.as_str()).expect("Expected valid command string");
+fn run(args: Args) -> Result<()> {
+    let command = Command::try_from(args.command.as_str())?;
     let files = files::parse(&args.files);
 
     let cache = FsCache::new(None);

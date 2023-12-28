@@ -8,7 +8,7 @@ pub struct Args {
     /// The list of files to operate on.
     #[arg()]
     pub files: Vec<String>,
-    /// Command to run. Files are passed to the command through stdin.
+    /// Command to run. Files are passed to the command through stdin, one at a time.
     #[arg(long)]
     pub command: String,
 }
