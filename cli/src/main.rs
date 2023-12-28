@@ -19,12 +19,13 @@ fn run() -> Result<()> {
 
     let command = Command::try_from(args.command.as_str()).expect("Expected valid command string");
     let files = files::parse(&args.files);
+
+    let cache = FsCache::new(None);
     let run_results = command
-        .run(files.iter().map(|path| path.as_path()).collect())
+        .run(files.iter().map(|path| path.as_path()).collect(), &cache)
         .into_iter()
         .map(|result| result.unwrap());
 
-    let cache = FsCache::new(None);
     for run_result in run_results {
         cache.write(&run_result)?;
         run_result.print_stdout();

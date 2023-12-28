@@ -1,14 +1,15 @@
 use crate::cache;
+use crate::command;
 
 #[derive(Debug)]
 pub enum Error {
-    Io(std::io::Error),
     Cache(cache::Error),
+    Command(command::Error),
 }
 
-impl From<std::io::Error> for Error {
-    fn from(value: std::io::Error) -> Self {
-        Error::Io(value)
+impl From<command::Error> for Error {
+    fn from(value: command::Error) -> Self {
+        Error::Command(value)
     }
 }
 
