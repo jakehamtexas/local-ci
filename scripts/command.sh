@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-filename=$1
+. ./scripts/lib.sh
 
-file_contents="$(cat "$filename")"
-
-echo "$filename: $file_contents"
+check_command $@

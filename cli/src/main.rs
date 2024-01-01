@@ -19,8 +19,12 @@ fn main() -> Result<()> {
 fn run(args: Args) -> Result<()> {
     let command = Command::try_from(args.command.as_str())?;
     let files = files::parse(&args.files);
+    let cache_key_files = args
+        .cache_key_files
+        .map(|cache_key_files| files::parse(&cache_key_files));
 
-    let cache = FsCache::new(None);
+    let command_name = command.name();
+    let cache = FsCache::new(None, command_name.as_str(), cache_key_files);
     let run_results = command
         .run(files.iter().map(|path| path.as_path()).collect(), &cache)
         .into_iter()

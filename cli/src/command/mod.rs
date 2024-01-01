@@ -80,4 +80,8 @@ impl Command<'_> {
             })
             .collect()
     }
+
+    pub fn name(&self) -> String {
+        format!("{} {}", self.name, self.args.join(" "))
+    }
 }

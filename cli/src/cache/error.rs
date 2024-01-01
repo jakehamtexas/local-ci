@@ -1,7 +1,8 @@
 #[derive(Debug)]
 pub enum Error {
     Other(Option<String>),
-    Io(std::io::Error),
+    IoNotFound,
+    IoOther(std::io::Error),
     Serialization(serde_json::Error),
 }
 
@@ -17,7 +18,11 @@ impl Error {
 
 impl From<std::io::Error> for Error {
     fn from(value: std::io::Error) -> Self {
-        Error::Io(value)
+        if value.kind() == std::io::ErrorKind::NotFound {
+            Error::IoNotFound
+        } else {
+            Error::IoOther(value)
+        }
     }
 }
 
@@ -27,4 +32,4 @@ impl From<serde_json::Error> for Error {
     }
 }
 
-pub type Result<'a, T, E = Error> = std::result::Result<T, E>;
+pub type Result<T, E = Error> = std::result::Result<T, E>;
