@@ -95,10 +95,8 @@ name = "cli"
 version = "0.1.0"
 dependencies = [
  "clap",
- "serde",
- "serde_json",
+ "common",
  "work_skipping",
- "xxhash-rust",
 ]
 
 [[package]]
@@ -106,6 +104,10 @@ name = "colorchoice"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
+
+[[package]]
+name = "common"
+version = "0.1.0"
 
 [[package]]
 name = "heck"
@@ -272,6 +274,12 @@ checksum = "dff9641d1cd4be8d1a070daf9e3773c5f67e78b4d9d42263020c057706765c04"
 [[package]]
 name = "work_skipping"
 version = "0.1.0"
+dependencies = [
+ "common",
+ "serde",
+ "serde_json",
+ "xxhash-rust",
+]
 
 [[package]]
 name = "xxhash-rust"

@@ -1,23 +1,20 @@
-use crate::cache::file_id::get_file_id;
 use crate::canonicalized_path::CanonicalizedPath;
+use crate::run_result::RunResult;
+use common::ReadonlyList;
+use file_id::get_file_id;
 use std::fs::{self, DirBuilder};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 pub mod error;
 mod file_id;
 pub use self::error::{Error, Result};
-
-use crate::command::RunResult;
-
-pub trait Cache {
-    fn write(&self, run_result: &RunResult) -> Result<()>;
-    fn read(&self, path: &Path) -> Result<Option<RunResult>>;
-}
+use crate::cache::Cache;
+pub use crate::cache::{Error as CacheError, Result as CacheResult};
 
 pub struct FsCache<'a> {
     state_dir: PathBuf,
     command: &'a str,
-    cache_key_file_paths: Option<Rc<[CanonicalizedPath]>>,
+    cache_key_file_paths: Option<ReadonlyList<CanonicalizedPath>>,
 }
 
 const DEFAULT_DIR_PREFIX: &'static str = ".local-ci";
@@ -45,21 +42,20 @@ impl FsCache<'_> {
     }
 
     fn get_filename(&self, path: Option<&CanonicalizedPath>) -> Result<PathBuf> {
-        let file_id = get_file_id(
+        get_file_id(
             self.command,
             path.expect("The target canonicalized path must exist."),
             self.cache_key_file_paths.as_ref(),
-        )?;
-        Ok(self
-            .state_dir
-            .join(file_id.command_id)
-            .join(file_id.cache_key_file_contents_id)
-            .join(file_id.target_file_path_id))
+        )
+        .map(|file_id| {
+            self.state_dir
+                .join(file_id.command_id)
+                .join(file_id.cache_key_file_contents_id)
+                .join(file_id.target_file_path_id)
+        })
     }
-}
 
-impl Cache for FsCache<'_> {
-    fn write(&self, run_result: &RunResult) -> Result<()> {
+    fn _write(&self, run_result: &RunResult) -> Result<()> {
         let path = self.get_filename(run_result.path())?;
         DirBuilder::new()
             .recursive(true)
@@ -70,7 +66,7 @@ impl Cache for FsCache<'_> {
         Ok(())
     }
 
-    fn read(&self, path: &Path) -> Result<Option<RunResult>> {
+    fn _read(&self, path: &Path) -> Result<Option<RunResult>> {
         let path = &CanonicalizedPath::new(path);
 
         let buf = fs::read(self.get_filename(path.as_ref())?).map_err(Error::from);
@@ -83,5 +79,15 @@ impl Cache for FsCache<'_> {
             Err(Error::IoNotFound) => Ok(None),
             Err(e) => Err(e),
         }
+    }
+}
+
+impl Cache for FsCache<'_> {
+    fn write(&self, run_result: &RunResult) -> CacheResult<()> {
+        Ok(self._write(run_result)?)
+    }
+
+    fn read(&self, path: &Path) -> CacheResult<Option<RunResult>> {
+        Ok(self._read(path)?)
     }
 }

@@ -1,4 +1,4 @@
-pub use crate::cache::error::{Error, Result};
+use super::error::{Error, Result};
 use crate::canonicalized_path::CanonicalizedPath;
 use std::fs::{self};
 use std::rc::Rc;
@@ -39,6 +39,10 @@ fn get_cache_key_file_content_bytes(
     bytes
 }
 
+// TODO: (for both `target_file_path` and `cache_key_file_paths`)
+//       Make sure to include the paths themselves in each file's
+//       content bytes so that two files with different paths but the
+//       same content are not addressable at the same key.
 pub fn get_file_id(
     command: &str,
     target_file_path: &CanonicalizedPath,

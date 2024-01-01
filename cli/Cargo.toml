@@ -3,22 +3,14 @@ name = "cli"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies.xxhash-rust]
-version ="0.8.8" 
-features = ["xxh3"]
+[dependencies.work_skipping]
+version = "0.1"
+path = "../work_skipping"
 
-[dependencies.serde]
-version = "1.0.193"
-features = ["std", "derive"]
-
-[dependencies.serde_json]
-version = "1.0.108"
-features = ["std"]
+[dependencies.common]
+version = "0.1"
+path = "../common"
 
 [dependencies.clap]
 version = "4.4.10"
 features = ["derive", "cargo"]
-
-[dependencies.work_skipping]
-version = "0.1"
-path = "../work_skipping"

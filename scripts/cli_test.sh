@@ -34,9 +34,9 @@ main() {
   clear_state
   clear_test_files
 
-  echo "Before modified cache"
   seed_test_files
 
+  echo "Before modified cache"
   run_test_command
   print_state_files
 

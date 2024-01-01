@@ -3,8 +3,10 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::rc::Rc;
 
+use common::ReadonlyList;
+
 // TODO: Replace this with a lib
-pub fn parse(files: &[String]) -> Rc<[PathBuf]> {
+pub fn parse(files: &[String]) -> ReadonlyList<PathBuf> {
     files
         .iter()
         .map(Path::new)

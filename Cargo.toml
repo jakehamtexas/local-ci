@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "work_skipping",
-  "cli"
+  "cli",
+  "common"
 ]
 resolver = "2"
