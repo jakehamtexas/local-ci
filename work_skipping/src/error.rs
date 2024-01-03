@@ -1,21 +1,41 @@
 use crate::cache;
+use crate::canonicalized_path::CanonicalizedPath;
 use crate::command;
+use core::fmt;
+use std::collections::HashMap;
+
+pub type FileErrorMap<T> = HashMap<CanonicalizedPath, T>;
+
+fn displayable<T: std::fmt::Debug>(map: &FileErrorMap<T>) -> Vec<String> {
+    map.into_iter()
+        .map(|(path, e)| {
+            format!(
+                "Path: {}, error: {:#?}",
+                path.value.to_str().unwrap_or("None"),
+                e
+            )
+        })
+        .collect::<Vec<_>>()
+}
 
 #[derive(Debug)]
 pub enum Error {
-    Cache(cache::Error),
-    Command(command::Error),
+    CommandCreation,
+    CommandExecution(FileErrorMap<command::Error>),
+    CacheWrite(FileErrorMap<cache::Error>),
 }
 
-impl From<command::Error> for Error {
-    fn from(value: command::Error) -> Self {
-        Error::Command(value)
-    }
-}
-
-impl From<cache::Error> for Error {
-    fn from(value: cache::Error) -> Self {
-        Error::Cache(value)
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::CommandCreation => write!(f, "Failed to create command due to parsing error."),
+            Error::CommandExecution(map) => {
+                write!(f, "Command execution failed: {:#?}", displayable(map))
+            }
+            Error::CacheWrite(map) => {
+                write!(f, "Cache write failed: {:#?}", displayable(map))
+            }
+        }
     }
 }
 

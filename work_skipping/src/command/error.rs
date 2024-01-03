@@ -1,19 +1,20 @@
+use crate::canonicalized_path::CanonicalizedPath;
+use std::path::PathBuf;
+
 #[derive(Debug)]
 pub enum Error {
     CreationFailed,
-    Io(std::io::Error),
-    Cache(crate::cache::Error),
+    BadPath(PathBuf, std::io::Error),
+    OutputIo(CanonicalizedPath, std::io::Error),
+    CacheRead(CanonicalizedPath, crate::cache::Error),
 }
 
-impl From<std::io::Error> for Error {
-    fn from(value: std::io::Error) -> Self {
-        Error::Io(value)
-    }
-}
-
-impl From<crate::cache::Error> for Error {
-    fn from(value: crate::cache::Error) -> Self {
-        Error::Cache(value)
+impl Error {
+    pub fn path(&self) -> Option<CanonicalizedPath> {
+        match self {
+            Error::CreationFailed | Error::BadPath(_, _) => None,
+            Error::OutputIo(p, _) | Error::CacheRead(p, _) => Some(p.to_owned()),
+        }
     }
 }
 

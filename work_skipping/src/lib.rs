@@ -7,7 +7,8 @@ mod run_result;
 use cache::{Cache, FsCache};
 use command::Command;
 use common::ReadonlyList;
-use std::path::PathBuf;
+use error::FileErrorMap;
+use std::{collections::HashMap, path::PathBuf};
 
 pub struct RunArgs {
     pub command: String,
@@ -16,19 +17,34 @@ pub struct RunArgs {
 }
 
 pub fn run(args: RunArgs) -> error::Result<()> {
-    let command = Command::try_from(args.command.as_str())?;
+    let command =
+        Command::try_from(args.command.as_str()).or(Err(error::Error::CommandCreation))?;
     let command_name = command.name();
     let cache = FsCache::new(None, command_name.as_str(), args.cache_key_files);
-    let run_results = command
+    let (oks, errs): (Vec<_>, Vec<_>) = command
         .run(
             args.files.iter().map(|path| path.as_path()).collect(),
             &cache,
         )
         .into_iter()
-        .map(|result| result.unwrap());
+        .partition(Result::is_ok);
 
-    for run_result in run_results {
-        cache.write(&run_result)?;
+    if !errs.is_empty() {
+        let map: FileErrorMap<command::Error> =
+            errs.into_iter()
+                .map(|r| r.unwrap_err())
+                .fold(HashMap::new(), |mut acc, e| {
+                    acc.insert(e.path().unwrap(), e);
+                    acc
+                });
+        return Err(error::Error::CommandExecution(map));
+    }
+
+    let mut cache_write_errors: FileErrorMap<cache::Error> = HashMap::new();
+    for run_result in oks.into_iter().map(|e| e.unwrap()) {
+        if let Err(e) = cache.write(&run_result) {
+            cache_write_errors.insert(run_result.path().to_owned(), e);
+        }
         run_result.print_stdout();
         run_result.print_stderr();
     }

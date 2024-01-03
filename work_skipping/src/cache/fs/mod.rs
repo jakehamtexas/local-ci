@@ -35,19 +35,14 @@ impl FsCache<'_> {
             cache_key_file_paths: cache_key_file_paths.map(|paths| {
                 paths
                     .iter()
-                    .filter_map(|path| CanonicalizedPath::new(path))
+                    .filter_map(|path| CanonicalizedPath::new(path).ok())
                     .collect::<Rc<[CanonicalizedPath]>>()
             }),
         }
     }
 
-    fn get_filename(&self, path: Option<&CanonicalizedPath>) -> Result<PathBuf> {
-        get_file_id(
-            self.command,
-            path.expect("The target canonicalized path must exist."),
-            self.cache_key_file_paths.as_ref(),
-        )
-        .map(|file_id| {
+    fn get_filename(&self, path: &CanonicalizedPath) -> Result<PathBuf> {
+        get_file_id(self.command, path, self.cache_key_file_paths.as_ref()).map(|file_id| {
             self.state_dir
                 .join(file_id.command_id)
                 .join(file_id.cache_key_file_contents_id)
@@ -66,10 +61,8 @@ impl FsCache<'_> {
         Ok(())
     }
 
-    fn _read(&self, path: &Path) -> Result<Option<RunResult>> {
-        let path = &CanonicalizedPath::new(path);
-
-        let buf = fs::read(self.get_filename(path.as_ref())?).map_err(Error::from);
+    fn _read(&self, path: &CanonicalizedPath) -> Result<Option<RunResult>> {
+        let buf = fs::read(self.get_filename(path)?).map_err(Error::from);
 
         match buf {
             Ok(buf) => {
@@ -87,7 +80,7 @@ impl Cache for FsCache<'_> {
         Ok(self._write(run_result)?)
     }
 
-    fn read(&self, path: &Path) -> CacheResult<Option<RunResult>> {
+    fn read(&self, path: &CanonicalizedPath) -> CacheResult<Option<RunResult>> {
         Ok(self._read(path)?)
     }
 }

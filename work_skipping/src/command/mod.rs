@@ -1,4 +1,5 @@
 use crate::cache::Cache;
+use crate::canonicalized_path::CanonicalizedPath;
 use crate::run_result::RunResult;
 use std::path::Path;
 use std::rc::Rc;
@@ -32,13 +33,20 @@ impl Command<'_> {
         paths
             .iter()
             .map(|path| {
-                let run_result = if let Some(run_result) = cache.read(path)? {
+                let path = CanonicalizedPath::new(path)
+                    .map_err(|e| Error::BadPath(path.to_path_buf(), e))?;
+
+                let run_result = if let Some(run_result) = cache
+                    .read(&path)
+                    .map_err(|e| Error::CacheRead(path.clone(), e))?
+                {
                     run_result
                 } else {
                     let output = std::process::Command::new(self.name)
                         .args(self.args.iter())
-                        .arg(path)
-                        .output()?;
+                        .arg(&path.value)
+                        .output()
+                        .map_err(|e| Error::OutputIo(path.clone(), e))?;
 
                     RunResult::new(&output, path)
                 };
