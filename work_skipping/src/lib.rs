@@ -1,53 +1,44 @@
 mod cache;
-mod canonicalized_path;
 mod command;
-pub mod error;
+mod error;
 mod run_result;
 
-use cache::{Cache, FsCache};
+use cache::{FsCache, ReadCache, WriteCache};
+pub use cache::{ReadError as CacheReadError, WriteError as CacheWriteError};
 use command::Command;
+pub use command::Error as CommandError;
+use common::canonicalized_path::CanonicalizedPath;
 use common::ReadonlyList;
-use error::FileErrorMap;
-use std::{collections::HashMap, path::PathBuf};
+pub use error::{Error, InnerError, Result};
+use run_result::RunResult;
+use std::path::{Path, PathBuf};
 
-pub struct RunArgs {
-    pub command: String,
-    pub cache_key_files: Option<ReadonlyList<PathBuf>>,
-    pub files: ReadonlyList<PathBuf>,
+pub struct RunArgs<'a> {
+    pub command: &'a str,
+    pub cache_key_files: Option<&'a ReadonlyList<PathBuf>>,
+    pub file: &'a Path,
 }
 
-pub fn run(args: RunArgs) -> error::Result<()> {
-    let command =
-        Command::try_from(args.command.as_str()).or(Err(error::Error::CommandCreation))?;
+fn inner(args: RunArgs) -> error::Result<RunResult, error::InnerError> {
+    let command = Command::try_from(args.command).or(Err(error::InnerError::CommandCreation))?;
     let command_name = command.name();
     let cache = FsCache::new(None, command_name.as_str(), args.cache_key_files);
-    let (oks, errs): (Vec<_>, Vec<_>) = command
-        .run(
-            args.files.iter().map(|path| path.as_path()).collect(),
-            &cache,
-        )
-        .into_iter()
-        .partition(Result::is_ok);
+    let path = CanonicalizedPath::new(args.file).map_err(error::InnerError::BadPath)?;
+    if let Some(run_result) = cache.read(&path)? {
+        Ok(run_result)
+    } else {
+        let run_result = command.run(path)?;
 
-    if !errs.is_empty() {
-        let map: FileErrorMap<command::Error> =
-            errs.into_iter()
-                .map(|r| r.unwrap_err())
-                .fold(HashMap::new(), |mut acc, e| {
-                    acc.insert(e.path().unwrap(), e);
-                    acc
-                });
-        return Err(error::Error::CommandExecution(map));
-    }
-
-    let mut cache_write_errors: FileErrorMap<cache::Error> = HashMap::new();
-    for run_result in oks.into_iter().map(|e| e.unwrap()) {
-        if let Err(e) = cache.write(&run_result) {
-            cache_write_errors.insert(run_result.path().to_owned(), e);
+        match cache.write(&run_result) {
+            Ok(_) => Ok(run_result),
+            Err(e) => {
+                Err(error::InnerError::CacheWriteFailedButCommandExecutionSucceeded(run_result, e))
+            }
         }
-        run_result.print_stdout();
-        run_result.print_stderr();
     }
+}
 
-    Ok(())
+pub fn run(args: RunArgs) -> error::Result<RunResult> {
+    let file = args.file;
+    inner(args).map_err(|e| error::Error::new(file, e))
 }

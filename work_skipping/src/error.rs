@@ -1,42 +1,59 @@
 use crate::cache;
-use crate::canonicalized_path::CanonicalizedPath;
 use crate::command;
-use core::fmt;
-use std::collections::HashMap;
+use crate::RunResult;
+use common::canonicalized_path;
+use std::fmt;
+use std::path::Path;
 
-pub type FileErrorMap<T> = HashMap<CanonicalizedPath, T>;
+#[derive(Debug)]
+pub struct Error<'a> {
+    path: &'a Path,
+    inner: InnerError,
+}
 
-fn displayable<T: std::fmt::Debug>(map: &FileErrorMap<T>) -> Vec<String> {
-    map.into_iter()
-        .map(|(path, e)| {
-            format!(
-                "Path: {}, error: {:#?}",
-                path.value.to_str().unwrap_or("None"),
-                e
-            )
-        })
-        .collect::<Vec<_>>()
+impl<'a> Error<'a> {
+    pub fn new(path: &'a Path, inner: InnerError) -> Self {
+        Error { path, inner }
+    }
+
+    pub fn kind(&self) -> &InnerError {
+        &self.inner
+    }
+}
+
+impl fmt::Display for Error<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Path: {}, error: {:#?}",
+            self.path.to_str().unwrap_or("None"),
+            self.inner
+        )
+    }
 }
 
 #[derive(Debug)]
-pub enum Error {
+pub enum InnerError {
     CommandCreation,
-    CommandExecution(FileErrorMap<command::Error>),
-    CacheWrite(FileErrorMap<cache::Error>),
+    BadPath(canonicalized_path::Error),
+    CommandExecution(command::Error),
+    CacheRead(cache::ReadError),
+    CacheWriteFailedButCommandExecutionSucceeded(RunResult, cache::WriteError),
 }
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::CommandCreation => write!(f, "Failed to create command due to parsing error."),
-            Error::CommandExecution(map) => {
-                write!(f, "Command execution failed: {:#?}", displayable(map))
-            }
-            Error::CacheWrite(map) => {
-                write!(f, "Cache write failed: {:#?}", displayable(map))
-            }
+impl From<command::Error> for InnerError {
+    fn from(value: command::Error) -> Self {
+        match value {
+            command::Error::CreationFailed => InnerError::CommandCreation,
+            command::Error::OutputIo(_) => InnerError::CommandExecution(value),
         }
     }
 }
 
-pub type Result<T, E = Error> = std::result::Result<T, E>;
+impl From<cache::ReadError> for InnerError {
+    fn from(value: cache::ReadError) -> Self {
+        InnerError::CacheRead(value)
+    }
+}
+
+pub type Result<'a, T, E = Error<'a>> = std::result::Result<T, E>;

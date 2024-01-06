@@ -1,14 +1,23 @@
-use super::fs;
-
 #[derive(Debug)]
-pub enum Error {
-    Fs(fs::error::Error),
+pub enum ReadError<T> {
+    Other(T),
+    Deserialization(serde_json::Error),
 }
 
-impl From<fs::error::Error> for Error {
-    fn from(value: fs::error::Error) -> Self {
-        Error::Fs(value)
+impl<T> From<serde_json::Error> for ReadError<T> {
+    fn from(value: serde_json::Error) -> Self {
+        ReadError::Deserialization(value)
     }
 }
 
-pub type Result<T, E = Error> = std::result::Result<T, E>;
+#[derive(Debug)]
+pub enum WriteError<T> {
+    Other(T),
+    Serialization(serde_json::Error),
+}
+
+impl<T> From<serde_json::Error> for WriteError<T> {
+    fn from(value: serde_json::Error) -> Self {
+        WriteError::Serialization(value)
+    }
+}

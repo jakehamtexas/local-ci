@@ -1,6 +1,5 @@
 use super::error::{Error, Result};
-use crate::canonicalized_path::CanonicalizedPath;
-use std::fs::{self};
+use common::canonicalized_path::CanonicalizedPath;
 use std::rc::Rc;
 use xxhash_rust::xxh3::xxh3_64;
 
@@ -33,7 +32,7 @@ fn get_cache_key_file_content_bytes(
 ) -> Result<Vec<Vec<u8>>> {
     let bytes: Result<Vec<Vec<u8>>> = cache_key_file_paths
         .iter()
-        .map(|path| fs::read(&path.value).map_err(Error::from))
+        .map(|path| path.read().map_err(Error::from))
         .collect();
 
     bytes
@@ -49,13 +48,7 @@ pub fn get_file_id(
     cache_key_file_paths: Option<&Rc<[CanonicalizedPath]>>,
 ) -> Result<FileId> {
     let command_hash = xxh3_64(command.as_bytes());
-    let target_file_path_bytes = target_file_path
-        .value
-        .to_str()
-        .ok_or(Error::other(
-            "Canonical paths are supposed to be coercible to str",
-        ))?
-        .as_bytes();
+    let target_file_path_bytes = target_file_path.to_str().as_bytes();
     let target_file_path_hash = xxh3_64(target_file_path_bytes);
 
     let cache_key_file_contents_hash = cache_key_file_paths
@@ -71,6 +64,6 @@ pub fn get_file_id(
     Ok(FileId::new(
         command_hash,
         target_file_path_hash,
-        cache_key_file_contents_hash.clone(),
+        cache_key_file_contents_hash,
     ))
 }

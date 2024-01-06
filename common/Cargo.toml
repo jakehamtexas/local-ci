@@ -2,3 +2,12 @@
 name = "common"
 version = "0.1.0"
 edition = "2021"
+
+[dependencies.serde]
+version = "1.0.193"
+features = ["std", "derive"]
+
+[dependencies.serde_json]
+version = "1.0.108"
+features = ["std"]
+

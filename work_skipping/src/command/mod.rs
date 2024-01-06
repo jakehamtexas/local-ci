@@ -1,7 +1,5 @@
-use crate::cache::Cache;
-use crate::canonicalized_path::CanonicalizedPath;
 use crate::run_result::RunResult;
-use std::path::Path;
+use common::canonicalized_path::CanonicalizedPath;
 use std::rc::Rc;
 pub mod error;
 pub use self::error::{Error, Result};
@@ -29,31 +27,14 @@ impl<'a> TryFrom<&'a str> for Command<'a> {
 }
 
 impl Command<'_> {
-    pub fn run(&self, paths: Rc<[&Path]>, cache: &dyn Cache) -> Vec<Result<RunResult>> {
-        paths
-            .iter()
-            .map(|path| {
-                let path = CanonicalizedPath::new(path)
-                    .map_err(|e| Error::BadPath(path.to_path_buf(), e))?;
+    pub fn run(&self, path: CanonicalizedPath) -> Result<RunResult> {
+        let output = std::process::Command::new(self.name)
+            .args(self.args.iter())
+            .arg(path.to_path_buf())
+            .output()
+            .map_err(Error::OutputIo)?;
 
-                let run_result = if let Some(run_result) = cache
-                    .read(&path)
-                    .map_err(|e| Error::CacheRead(path.clone(), e))?
-                {
-                    run_result
-                } else {
-                    let output = std::process::Command::new(self.name)
-                        .args(self.args.iter())
-                        .arg(&path.value)
-                        .output()
-                        .map_err(|e| Error::OutputIo(path.clone(), e))?;
-
-                    RunResult::new(&output, path)
-                };
-
-                Ok(run_result)
-            })
-            .collect()
+        Ok(RunResult::new(&output, path.to_owned()))
     }
 
     pub fn name(&self) -> String {

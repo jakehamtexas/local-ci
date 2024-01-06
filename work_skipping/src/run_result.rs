@@ -1,4 +1,4 @@
-use crate::canonicalized_path::CanonicalizedPath;
+use common::canonicalized_path::CanonicalizedPath;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -20,15 +20,15 @@ impl RunResult {
         }
     }
 
-    pub fn print_stdout(&self) -> () {
-        print!("{}", self.stdout);
-    }
-
-    pub fn print_stderr(&self) -> () {
-        eprint!("{}", self.stdout);
-    }
-
     pub fn path(&self) -> &CanonicalizedPath {
         &self.canonicalized_path
+    }
+
+    pub fn stdout(&self) -> &str {
+        &self.stdout
+    }
+
+    pub fn stderr(&self) -> &str {
+        &self.stderr
     }
 }

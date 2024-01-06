@@ -1,19 +1,9 @@
+use common::canonicalized_path;
+
 #[derive(Debug)]
 pub enum Error {
-    Other(Option<String>),
     IoNotFound,
-    IoOther(std::io::Error),
-    Serialization(serde_json::Error),
-}
-
-impl Error {
-    pub fn other(message: &str) -> Error {
-        Error::Other(Some(message.to_owned()))
-    }
-
-    pub fn _other_unspecified() -> Error {
-        Error::Other(None)
-    }
+    Io(std::io::Error),
 }
 
 impl From<std::io::Error> for Error {
@@ -21,14 +11,18 @@ impl From<std::io::Error> for Error {
         if value.kind() == std::io::ErrorKind::NotFound {
             Error::IoNotFound
         } else {
-            Error::IoOther(value)
+            Error::Io(value)
         }
     }
 }
 
-impl From<serde_json::Error> for Error {
-    fn from(value: serde_json::Error) -> Self {
-        Error::Serialization(value)
+impl From<canonicalized_path::Error> for Error {
+    fn from(value: canonicalized_path::Error) -> Self {
+        match value {
+            canonicalized_path::Error::Read(e)
+            | canonicalized_path::Error::Write(e)
+            | canonicalized_path::Error::Creation(e) => e.into(),
+        }
     }
 }
 
