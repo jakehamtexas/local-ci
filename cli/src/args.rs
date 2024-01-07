@@ -20,4 +20,8 @@ pub struct Args {
     /// e.g. {cmd} source-1.js source-2.js --command eslint --cache-key-files .eslintrc.json
     #[arg(long)]
     pub cache_key_files: Option<Vec<String>>,
+
+    /// Where to keep the cache state for command executions. Defaults to `./.local-ci/cache`.
+    #[arg()]
+    pub state_dir: Option<String>,
 }

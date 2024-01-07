@@ -2,7 +2,8 @@ use crate::run_result::RunResult;
 use common::canonicalized_path::CanonicalizedPath;
 use common::ReadonlyList;
 use file_id::get_file_id;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 use std::rc::Rc;
 pub mod error;
 mod file_id;
@@ -10,25 +11,19 @@ pub use self::error::{Error, Result};
 use crate::cache::{ReadCache, ReadResult, WriteCache, WriteResult};
 
 pub struct FsCache<'a> {
-    state_dir: PathBuf,
+    state_dir: &'a Path,
     command: &'a str,
     cache_key_file_paths: Option<ReadonlyList<CanonicalizedPath>>,
 }
 
-const DEFAULT_DIR_PREFIX: &str = ".local-ci";
-fn get_state_dir(prefix: &str) -> PathBuf {
-    Path::new(prefix).join("cache")
-}
-
 impl FsCache<'_> {
     pub fn new<'a>(
-        dir_prefix_override: Option<&'a str>,
+        state_dir: &'a Path,
         command: &'a str,
         cache_key_file_paths: Option<&'a Rc<[PathBuf]>>,
     ) -> FsCache<'a> {
-        let dir_prefix = dir_prefix_override.unwrap_or(DEFAULT_DIR_PREFIX);
         FsCache {
-            state_dir: get_state_dir(dir_prefix),
+            state_dir,
             command,
             cache_key_file_paths: cache_key_file_paths.map(|paths| {
                 paths

@@ -16,8 +16,9 @@ pub enum Error {
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 impl CanonicalizedPath {
-    pub fn new(path: &Path) -> Result<Self> {
-        path.canonicalize()
+    pub fn new<TPath: AsRef<Path>>(path: TPath) -> Result<Self> {
+        path.as_ref()
+            .canonicalize()
             .map(|value| CanonicalizedPath { value })
             .map_err(Error::Creation)
     }

@@ -17,12 +17,14 @@ pub struct RunArgs<'a> {
     pub command: &'a str,
     pub cache_key_files: Option<&'a ReadonlyList<PathBuf>>,
     pub file: &'a Path,
+    pub state_dir: &'a Path,
 }
 
 fn inner(args: RunArgs) -> error::Result<RunResult, error::InnerError> {
     let command = Command::try_from(args.command).or(Err(error::InnerError::CommandCreation))?;
     let command_name = command.name();
-    let cache = FsCache::new(None, command_name.as_str(), args.cache_key_files);
+
+    let cache = FsCache::new(args.state_dir, command_name.as_str(), args.cache_key_files);
     let path = CanonicalizedPath::new(args.file).map_err(error::InnerError::BadPath)?;
     if let Some(run_result) = cache.read(&path)? {
         Ok(run_result)
