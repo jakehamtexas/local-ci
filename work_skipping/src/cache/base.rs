@@ -1,9 +1,9 @@
 use crate::cache::{ReadResult, WriteResult};
 use crate::run_result::RunResult;
-use common::canonicalized_path::CanonicalizedPath;
+use common::RelativePath;
 
 pub trait ReadCache {
-    fn read(&self, path: &CanonicalizedPath) -> ReadResult<Option<RunResult>>;
+    fn read(&self, path: &RelativePath) -> ReadResult<Option<RunResult>>;
 }
 
 pub trait WriteCache {

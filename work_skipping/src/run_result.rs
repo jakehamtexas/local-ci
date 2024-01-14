@@ -1,27 +1,27 @@
-use common::canonicalized_path::CanonicalizedPath;
+use common::RelativePath;
 use serde::Deserialize;
 use serde::Serialize;
 
 use std::process::Output;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct RunResult {
     stdout: String,
     stderr: String,
-    canonicalized_path: CanonicalizedPath,
+    path: RelativePath,
 }
 
 impl RunResult {
-    pub fn new(output: &Output, path: CanonicalizedPath) -> RunResult {
+    pub fn new(output: &Output, path: RelativePath) -> RunResult {
         RunResult {
             stdout: String::from_utf8_lossy(&output.stdout).to_string(),
             stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-            canonicalized_path: path,
+            path,
         }
     }
 
-    pub fn path(&self) -> &CanonicalizedPath {
-        &self.canonicalized_path
+    pub fn path(&self) -> &RelativePath {
+        &self.path
     }
 
     pub fn stdout(&self) -> &str {

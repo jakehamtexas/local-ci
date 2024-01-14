@@ -3,6 +3,9 @@ name = "cli"
 version = "0.1.0"
 edition = "2021"
 
+[dependencies]
+thiserror.workspace = true
+
 [dependencies.work_skipping]
 version = "0.1"
 path = "../work_skipping"

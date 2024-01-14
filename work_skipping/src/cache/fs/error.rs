@@ -1,29 +1,20 @@
-use common::canonicalized_path;
+use common::{FileError, FileHandleError};
+use std::path::PathBuf;
+use thiserror::Error;
 
-#[derive(Debug)]
-pub enum Error {
-    IoNotFound,
-    Io(std::io::Error),
+#[derive(Debug, Error, PartialEq)]
+pub enum FsCacheError {
+    #[error("Not found: {0:?}")]
+    IoNotFound(PathBuf),
+    #[error("Unexpected FS Cache Error: {0:?}")]
+    Io(#[source] FileError),
 }
 
-impl From<std::io::Error> for Error {
-    fn from(value: std::io::Error) -> Self {
-        if value.kind() == std::io::ErrorKind::NotFound {
-            Error::IoNotFound
-        } else {
-            Error::Io(value)
+impl FsCacheError {
+    pub fn from_error_with_path(path: PathBuf) -> impl FnOnce(FileHandleError) -> Self {
+        move |e: FileHandleError| match e.inner().source().kind() {
+            std::io::ErrorKind::NotFound => FsCacheError::IoNotFound(path),
+            _ => FsCacheError::Io(e.into_inner()),
         }
     }
 }
-
-impl From<canonicalized_path::Error> for Error {
-    fn from(value: canonicalized_path::Error) -> Self {
-        match value {
-            canonicalized_path::Error::Read(e)
-            | canonicalized_path::Error::Write(e)
-            | canonicalized_path::Error::Creation(e) => e.into(),
-        }
-    }
-}
-
-pub type Result<T, E = Error> = std::result::Result<T, E>;

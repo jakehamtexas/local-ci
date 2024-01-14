@@ -1,6 +1,6 @@
 use common::ReadonlyList;
 use core::fmt;
-use std::rc::Rc;
+use std::sync::Arc;
 #[derive(Debug)]
 
 pub struct Error<'a> {
@@ -11,8 +11,8 @@ pub struct Error<'a> {
     cache_write_errs: Vec<work_skipping::Error<'a>>,
 }
 
-impl<'a> Error<'a> {
-    pub fn new(err_results: Vec<Result<(), work_skipping::Error<'a>>>) -> Error<'a> {
+impl Error<'_> {
+    pub fn new(err_results: Vec<Result<(), work_skipping::Error>>) -> Error {
         let mut error = Error {
             command_creation_errs: Vec::new(),
             bad_path_errs: Vec::new(),
@@ -25,9 +25,6 @@ impl<'a> Error<'a> {
             match err.kind() {
                 work_skipping::InnerError::CommandCreation => {
                     error.command_creation_errs.push(err);
-                }
-                work_skipping::InnerError::BadPath(_) => {
-                    error.bad_path_errs.push(err);
                 }
                 work_skipping::InnerError::CacheRead(_) => {
                     error.cache_read_errs.push(err);
@@ -75,7 +72,7 @@ fn fmt_write(f: &mut fmt::Formatter<'_>, (msg, errs): &Pair) -> Option<fmt::Resu
 
 impl fmt::Display for Error<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let errs_message_pairs: ReadonlyList<Pair> = Rc::new([
+        let errs_message_pairs: ReadonlyList<Pair> = Arc::new([
             (
                 "Failed to create command:",
                 self.command_creation_errs.as_slice(),

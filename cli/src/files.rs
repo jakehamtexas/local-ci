@@ -1,7 +1,6 @@
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
-use std::rc::Rc;
 
 use common::ReadonlyList;
 
@@ -12,7 +11,7 @@ pub fn parse(files: &[String]) -> ReadonlyList<PathBuf> {
         .map(Path::new)
         .filter(|path| path.is_file() || path.is_dir())
         .flat_map(get_files)
-        .collect::<Rc<_>>()
+        .collect::<ReadonlyList<_>>()
 }
 
 fn get_files(path: &Path) -> Vec<PathBuf> {

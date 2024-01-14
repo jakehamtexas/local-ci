@@ -1,31 +1,26 @@
+use common::prelude::*;
+use std::sync::Arc;
 mod cache;
 mod command;
+mod config;
 mod error;
 mod run_result;
 
+pub use crate::config::{ArgsContext, Config};
+pub use cache::{CacheReadError, CacheWriteError, FileId};
 use cache::{FsCache, ReadCache, WriteCache};
-pub use cache::{ReadError as CacheReadError, WriteError as CacheWriteError};
 use command::Command;
-pub use command::Error as CommandError;
-use common::canonicalized_path::CanonicalizedPath;
-use common::ReadonlyList;
+pub use command::CommandError;
+use common::RelativePath;
 pub use error::{Error, InnerError, Result};
-use run_result::RunResult;
-use std::path::{Path, PathBuf};
+pub use run_result::RunResult;
 
-pub struct RunArgs<'a> {
-    pub command: &'a str,
-    pub cache_key_files: Option<&'a ReadonlyList<PathBuf>>,
-    pub file: &'a Path,
-    pub state_dir: &'a Path,
-}
+fn inner(config: Arc<Config>) -> error::Result<RunResult, error::InnerError> {
+    let command =
+        Command::try_from(config.command()).or(Err(error::InnerError::CommandCreation))?;
 
-fn inner(args: RunArgs) -> error::Result<RunResult, error::InnerError> {
-    let command = Command::try_from(args.command).or(Err(error::InnerError::CommandCreation))?;
-    let command_name = command.name();
-
-    let cache = FsCache::new(args.state_dir, command_name.as_str(), args.cache_key_files);
-    let path = CanonicalizedPath::new(args.file).map_err(error::InnerError::BadPath)?;
+    let cache = FsCache::new(&config);
+    let path = RelativePath::new(config.path());
     if let Some(run_result) = cache.read(&path)? {
         Ok(run_result)
     } else {
@@ -40,7 +35,6 @@ fn inner(args: RunArgs) -> error::Result<RunResult, error::InnerError> {
     }
 }
 
-pub fn run(args: RunArgs) -> error::Result<RunResult> {
-    let file = args.file;
-    inner(args).map_err(|e| error::Error::new(file, e))
+pub fn run(args: Arc<Config>) -> error::Result<RunResult> {
+    inner(Arc::clone(&args)).map_err(|e| error::Error::new(Arc::clone(&args), e))
 }

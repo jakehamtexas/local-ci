@@ -1,19 +1,22 @@
 use crate::cache;
-use crate::command;
+use crate::cache::CacheReadError;
+use crate::cache::CacheWriteError;
+use crate::command::CommandError;
+use crate::Config;
 use crate::RunResult;
-use common::canonicalized_path;
-use std::fmt;
-use std::path::Path;
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error, PartialEq)]
+#[error("{:#?}", self)]
 pub struct Error<'a> {
-    path: &'a Path,
+    config: std::sync::Arc<Config<'a>>,
+    #[source]
     inner: InnerError,
 }
 
 impl<'a> Error<'a> {
-    pub fn new(path: &'a Path, inner: InnerError) -> Self {
-        Error { path, inner }
+    pub fn new(config: std::sync::Arc<Config<'a>>, inner: InnerError) -> Self {
+        Error { config, inner }
     }
 
     pub fn kind(&self) -> &InnerError {
@@ -21,37 +24,33 @@ impl<'a> Error<'a> {
     }
 }
 
-impl fmt::Display for Error<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Path: {}, error: {:#?}",
-            self.path.to_str().unwrap_or("None"),
-            self.inner
-        )
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Error, PartialEq)]
 pub enum InnerError {
+    #[error("Command creation failed")]
     CommandCreation,
-    BadPath(canonicalized_path::Error),
-    CommandExecution(command::Error),
-    CacheRead(cache::ReadError),
-    CacheWriteFailedButCommandExecutionSucceeded(RunResult, cache::WriteError),
+    #[error("Command execution failed: {0:?}")]
+    CommandExecution(CommandError),
+    #[error("Cache read failed: {0:?}")]
+    CacheRead(CacheReadError),
+    #[error(
+        "Cache write failed, but execution succeeded. RunResult: {:?}, Error: {:?}",
+        0,
+        1
+    )]
+    CacheWriteFailedButCommandExecutionSucceeded(RunResult, CacheWriteError),
 }
 
-impl From<command::Error> for InnerError {
-    fn from(value: command::Error) -> Self {
+impl From<CommandError> for InnerError {
+    fn from(value: CommandError) -> Self {
         match value {
-            command::Error::CreationFailed => InnerError::CommandCreation,
-            command::Error::OutputIo(_) => InnerError::CommandExecution(value),
+            CommandError::CreationFailed => InnerError::CommandCreation,
+            CommandError::OutputIo(_, _) => InnerError::CommandExecution(value),
         }
     }
 }
 
-impl From<cache::ReadError> for InnerError {
-    fn from(value: cache::ReadError) -> Self {
+impl From<cache::CacheReadError> for InnerError {
+    fn from(value: cache::CacheReadError) -> Self {
         InnerError::CacheRead(value)
     }
 }

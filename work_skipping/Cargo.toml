@@ -3,6 +3,9 @@ name = "work_skipping"
 version = "0.1.0"
 edition = "2021"
 
+[dependencies]
+thiserror.workspace = true
+
 [dependencies.common]
 version = "0.1"
 path = "../common"
@@ -18,3 +21,8 @@ features = ["std", "derive"]
 [dependencies.serde_json]
 version = "1.0.108"
 features = ["std"]
+
+[dev-dependencies]
+assert_fs = "1.1.0"
+predicates = "3.0.4"
+rstest = "0.18.2"
